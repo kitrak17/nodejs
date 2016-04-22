@@ -1,0 +1,80 @@
+// File : controller/Users.js --> 							
+
+var md5 = require('MD5');
+var hat = require('hat');
+var chai = require('chai');
+var sinon = require('sinon');
+var expect = chai.expect;
+
+
+//User controller
+function user(){
+	data 	= {};
+	tomodel = {};
+	models 	= require('../models');
+};
+user.prototype.constructor = user;
+
+//Function to signup user
+user.prototype.signup =  function(req, res) {
+	var error = req.validationErrors();
+        if (error) res.json(error,400);
+	else
+	{
+		var user = req.body;
+		models.User.findOrCreate({
+		    where: {email: user.email},
+		    defaults: {first_name: user.first_name, last_name: user.last_name, password: md5(user.password)}
+		}).spread(function (user, created) {
+		    if (created === false) res.json({result: "Email already registered", status: false});
+		    else res.json({result: "Registration successfull", status: true});
+		}).catch(function (error) {
+		    res.json({result: "Error occured", status: false});
+		});
+	}
+}
+
+//Function to login
+user.prototype.login =  function(req, res) {
+		var cred = req.body;
+		//console.log(req);
+		var pass = md5(cred.password);
+		var token = hat();
+		models.User.findOne({attributes: ['email','id'], where: {email: cred.email, password: pass}})
+        .then(function (user) {
+        	if(user) { 
+	        		models.User.update({
+					  remember_token: token,
+					}, {
+					  where: {
+					    id: user.id
+					  }
+					});
+					user.remember_token = token;
+        			res.json({result: "Logged in successfully", data: user, status: true}); 
+        	}
+        	else { 
+        		res.json({result: "Logged in failed", status: false}); 
+        	}
+        }).catch(function (error) {
+            res.json({result: "Unexpected error", data: error, status: false});
+        });
+}
+
+
+
+//Function to signup user
+user.prototype.profile =  function(req, res) {
+		var user = req.body;
+		models.User.update({
+					first_name: user.first_name, 
+					last_name:user.last_name 
+		 		}, {
+		    		where: {
+					id: user.user_id
+				}
+		});
+		res.json({result: "profile updated successfully", user_id: user.user_id, status: true}); 
+}
+
+module.exports = new user();

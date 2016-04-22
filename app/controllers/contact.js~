@@ -1,0 +1,70 @@
+// File : controller/contact.js --> 							
+
+var md5 = require('MD5');
+var hat = require('hat');
+
+//Contact controller
+function contact(){
+	data 	= {};
+	tomodel = {};
+	models 	= require('../models');
+};
+contact.prototype.constructor = contact;
+
+//Function to list all contacts
+contact.prototype.list =  function(req, res) {
+	var user = req.body;
+	var token = hat();
+        models.User.findOrCreate({
+            where: {email: user.email},
+            defaults: {first_name: user.first_name, last_name: user.last_name, password: md5(user.password), remember_token: token}
+        }).spread(function (user, created) {
+            if (created === false) res.json({result: "Email already registered", status: false});
+            res.json({result: "Registration successfull", status: true});
+        }).catch(function (error) {
+            res.json({result: "Error occured", status: false});
+        });
+}
+
+//Function to show the add new form
+contact.prototype.add_form =  function(req, res) {
+	data.title = 'Add New Contats';
+	res.render('../views/new',data);
+}
+
+//Function to insert a new contact
+contact.prototype.add_insert =  function(req, res) {
+	
+	tomodel.con_name = req.body.con_name;
+	tomodel.con_num = req.body.con_num;
+	model.insert(tomodel,function(err,rows){
+	  	res.redirect('/');
+	});
+
+}
+
+//Function to edit contact
+contact.prototype.edit =  function(req, res) {
+	
+	data.title = 'Edit Contats';
+	tomodel.con_id = req.params.id;
+	model.select_contact(tomodel,function(err,rows){
+	  		data.rows = rows;
+	  		res.render('../views/edit',data);
+	});
+
+}
+
+//Function to save the editted contact
+contact.prototype.edit_save =  function(req, res) {
+	
+	tomodel.con_name = req.body.con_name;
+	tomodel.con_num = req.body.con_num;
+	tomodel.con_id = req.body.con_id;
+	model.save(tomodel,function(err,rows){
+	  	res.redirect('/');
+	});
+
+}
+
+module.exports = new contact();

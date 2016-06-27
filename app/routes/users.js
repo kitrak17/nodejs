@@ -14,6 +14,7 @@ router.route('/verifycode').post(validations.verifycode,usercontroller.verifycod
 router.route('/forgotpassreq').post(validations.forgotpassreq,usercontroller.forgotpassreq);
 router.route('/forgotpasschange').post(validations.forgotpasschange,usercontroller.forgotpasschange);
 router.route('/photoupload').post(usercontroller.photoupload);
+router.route('/updateprofile').post(validations.updateprofile,usercontroller.updateprofile);
 //router.route('/sendemail').post(usercontroller.sendemail);
 
 

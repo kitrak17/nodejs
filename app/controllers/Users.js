@@ -5,8 +5,9 @@ var fs 		= require('fs');
 var util 	= require('util');
 var path = require('path');
 var randomstring = require("randomstring");
-var common 	= require('../controllers/Common');
+var common 	= require('./Common');
 var multer	=	require('multer');
+var constants = require("./Constants");
 
 
 //User controller
@@ -25,6 +26,8 @@ user.prototype.signup =  function(req, res) {
               res.status(202).json(error); 
          }
 	else {
+		userEmailDomain = user.email.split("@");
+		if(constants.UNIVERSITY_DOMAIN!=userEmailDomain[1]) res.status(202).json([{msg: "Email is not valid. University email ids are only Allowed."}]);
 		var verify_code = randomstring.generate({
 							  length: 5,
 							  charset: 'numeric'
@@ -200,38 +203,89 @@ user.prototype.forgotpasschange =  function(req, res) {
 
 //Function to  update profile
 user.prototype.photoupload =  function(req, res) {
+		
+			var upload = multer({
+			      dest: './uploads/',
+			      limits : { fileSize : 1000000 },
+			      fileFilter : function (req, file, cb) {
+									 if (file.mimetype == 'image/png' || file.mimetype == 'image/jpg' || file.mimetype == 'image/jpeg' || file.mimetype == 'image/gif') {
+									 	 cb(null, true);
+									 }
+									 else {
+									 	  cb(new Error('I don\'t have a clue!'));
+									 }
+								},
+			}).single('image');
 
-		var upload = multer({
-		      dest: './uploads/',
-		      limits : { fileSize : 100000 },
-		      fileFilter : function (req, file, cb) {
-								 if (file.mimetype == 'image/png' || file.mimetype == 'image/jpg' || file.mimetype == 'image/jpeg' || file.mimetype == 'image/gif') {
-								 	 cb(null, true);
-								 }
-								 else {
-								 	  cb(new Error('I don\'t have a clue!'));
-								 }
-							},
-		}).single('image');
+			upload(req,res,function(err) {
+					if(err) {
+						res.status(202).json([{msg: "Allowed image extensions are jpg,png and image size should not exist 1 MB.", error: err}]);
+					} else {
+						var data = req.body;
+						if(data.token && data.token!='')
+						{
+							if(data.user_id && data.user_id!='')
+							{	
+								models.User.findOne({attributes: ['id'], where: {id: data.user_id,remember_token:data.token }})
+						        .then(function (user) {
+						        	if(user) { 
+						        				var file = req.file;
+												models.User.update({
+													  profile_pic:file.path,
+													  //first_name:data.first_name,
+													  //last_name:data.last_name,
+													}, {
+													  where: {
+													    remember_token: data.token
+													  }
+												});
+												res.status(200).json([{msg: "Profile updated successfully."}]);
+						        	}
+						        	else { 
+						        		res.status(202).json([{msg: "Invalid token or user ID."}]); 
+						        	}
+						        }).catch(function (error) {
+						            res.status(202).json([{msg: "Upload failed"}]);
+						        });						
+							} else {
+								res.status(202).json([{msg: "User ID missing."}]);
+							}
+						} else {
+								res.status(202).json([{msg: "Token missing."}]);
+						}
+					}
+			});
+}
 
-		upload(req,res,function(err) {
-				if(err) {
-					res.status(202).json([{msg: "Allowed image extensions are jpg,png and image size should not exist 1 MB.", error: err}]);
-				} else {
-					var data = req.body;
-					var file = req.file;
-					models.User.update({
-						  profile_pic:file.path,
-						  first_name:data.first_name,
-						  last_name:data.last_name,
-						}, {
-						  where: {
-						    id: data.user_id
-						  }
-					});
-					res.status(200).json([{msg: "Profile updated successfully.", status: true}]);
-				}
-		});
+
+//Function to  update profile
+user.prototype.updateprofile =  function(req, res) {
+			var data = req.body;
+			var error 	= req.validationErrors();
+			if(error) { 
+		        res.status(202).json(error); 
+		    } else {
+
+		    	models.User.findOne({attributes: ['id'], where: {id: data.user_id,remember_token:data.token }})
+						        .then(function (user) {
+						        	if(user) { 
+	        								models.User.update({
+												  first_name:data.first_name,
+												  last_name:data.last_name,
+												}, {
+												  where: {
+												    remember_token: data.token
+												  }
+											});
+											res.status(200).json([{msg: "Profile updated successfully.", status: true}]);
+						        	}
+						        	else { 
+						        		res.status(202).json([{msg: "Invalid token or user ID."}]); 
+						        	}
+						        }).catch(function (error) {
+						            res.status(202).json([{msg: "Upload failed"}]);
+						        });	   
+			}
 }
 
 module.exports = new user();

@@ -44,4 +44,13 @@ user.prototype.forgotpasschange =  function(req, res, next) {
     next();
 }
 
+//Function to photo upload
+user.prototype.updateprofile =  function(req, res, next) {
+    req.checkBody('token', 'Token is required').notEmpty();
+    req.checkBody('first_name', 'First name is required').notEmpty();
+    req.checkBody('last_name', 'Last name is required').notEmpty();
+    req.checkBody('user_id', 'User ID is required').notEmpty();
+    next();
+}
+
 module.exports = new user();
